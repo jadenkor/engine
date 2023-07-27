@@ -136,67 +136,72 @@ class VirtualDisplayController {
   }
 
   public void resize(final int width, final int height, final Runnable onNewSizeFrameAvailable) {
-    boolean isFocused = getView().isFocused();
-    final SingleViewPresentation.PresentationState presentationState = presentation.detachState();
-    // We detach the surface to prevent it being destroyed when releasing the vd.
-    virtualDisplay.setSurface(null);
-    virtualDisplay.release();
-
-    final DisplayManager displayManager =
-        (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
-    renderTarget.resize(width, height);
-    virtualDisplay =
-        displayManager.createVirtualDisplay(
-            "flutter-vd#" + viewId, width, height, densityDpi, renderTarget.getSurface(), 0);
-
+    virtualDisplay.resize(width, height, densityDpi);
     final View embeddedView = getView();
-    // There's a bug in Android version older than O where view tree observer onDrawListeners don't
-    // get properly
-    // merged when attaching to window, as a workaround we register the on draw listener after the
-    // view is attached.
-    embeddedView.addOnAttachStateChangeListener(
-        new View.OnAttachStateChangeListener() {
-          @Override
-          public void onViewAttachedToWindow(View v) {
-            OneTimeOnDrawListener.schedule(
-                embeddedView,
-                new Runnable() {
-                  @Override
-                  public void run() {
-                    // We need some delay here until the frame propagates through the vd surface to
-                    // the texture,
-                    // 128ms was picked pretty arbitrarily based on trial and error.
-                    // As long as we invoke the runnable after a new frame is available we avoid the
-                    // scaling jank
-                    // described in: https://github.com/flutter/flutter/issues/19572
-                    // We should ideally run onNewSizeFrameAvailable ASAP to make the embedded view
-                    // more responsive
-                    // following a resize.
-                    embeddedView.postDelayed(onNewSizeFrameAvailable, 128);
-                  }
-                });
-            embeddedView.removeOnAttachStateChangeListener(this);
-          }
+    renderTarget.resize(width, height);
+    embeddedView.postDelayed(onNewSizeFrameAvailable, 128);
 
-          @Override
-          public void onViewDetachedFromWindow(View v) {}
-        });
-
-    // Create a new SingleViewPresentation and show() it before we cancel() the existing
-    // presentation. Calling show() and cancel() in this order fixes
-    // https://github.com/flutter/flutter/issues/26345 and maintains seamless transition
-    // of the contents of the presentation.
-    SingleViewPresentation newPresentation =
-        new SingleViewPresentation(
-            context,
-            virtualDisplay.getDisplay(),
-            accessibilityEventsDelegate,
-            presentationState,
-            focusChangeListener,
-            isFocused);
-    newPresentation.show();
-    presentation.cancel();
-    presentation = newPresentation;
+//    boolean isFocused = getView().isFocused();
+//    final SingleViewPresentation.PresentationState presentationState = presentation.detachState();
+//    // We detach the surface to prevent it being destroyed when releasing the vd.
+//    virtualDisplay.setSurface(null);
+//    virtualDisplay.release();
+//
+//    final DisplayManager displayManager =
+//        (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+//    renderTarget.resize(width, height);
+//    virtualDisplay =
+//        displayManager.createVirtualDisplay(
+//            "flutter-vd#" + viewId, width, height, densityDpi, renderTarget.getSurface(), 0);
+//
+//    final View embeddedView = getView();
+//    // There's a bug in Android version older than O where view tree observer onDrawListeners don't
+//    // get properly
+//    // merged when attaching to window, as a workaround we register the on draw listener after the
+//    // view is attached.
+//    embeddedView.addOnAttachStateChangeListener(
+//        new View.OnAttachStateChangeListener() {
+//          @Override
+//          public void onViewAttachedToWindow(View v) {
+//            OneTimeOnDrawListener.schedule(
+//                embeddedView,
+//                new Runnable() {
+//                  @Override
+//                  public void run() {
+//                    // We need some delay here until the frame propagates through the vd surface to
+//                    // the texture,
+//                    // 128ms was picked pretty arbitrarily based on trial and error.
+//                    // As long as we invoke the runnable after a new frame is available we avoid the
+//                    // scaling jank
+//                    // described in: https://github.com/flutter/flutter/issues/19572
+//                    // We should ideally run onNewSizeFrameAvailable ASAP to make the embedded view
+//                    // more responsive
+//                    // following a resize.
+//                    embeddedView.postDelayed(onNewSizeFrameAvailable, 128);
+//                  }
+//                });
+//            embeddedView.removeOnAttachStateChangeListener(this);
+//          }
+//
+//          @Override
+//          public void onViewDetachedFromWindow(View v) {}
+//        });
+//
+//    // Create a new SingleViewPresentation and show() it before we cancel() the existing
+//    // presentation. Calling show() and cancel() in this order fixes
+//    // https://github.com/flutter/flutter/issues/26345 and maintains seamless transition
+//    // of the contents of the presentation.
+//    SingleViewPresentation newPresentation =
+//        new SingleViewPresentation(
+//            context,
+//            virtualDisplay.getDisplay(),
+//            accessibilityEventsDelegate,
+//            presentationState,
+//            focusChangeListener,
+//            isFocused);
+//    newPresentation.show();
+//    presentation.cancel();
+//    presentation = newPresentation;
   }
 
   public void dispose() {
